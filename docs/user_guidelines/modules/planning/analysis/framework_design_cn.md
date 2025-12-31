@@ -26,6 +26,8 @@ Planning 模块需要获取外部环境信息，车辆自身信息进行轨迹�
 
 <table><thead><tr><th>信息分类</th><th>信息</th><th>说明</th><th>数据类型</th><th>topic name</th></tr></thead><tbody><tr><td rowspan="3"><br>外部命令</td><td>沿车道线行驶命令</td><td>基于高精地图导航的命令，给定终点的位置或朝向，从当前车辆位置导航到目标终点位置。</td><td>external_command::LaneFollowCommand</td><td>/apollo/external_command/lane_follow</td></tr><tr><td>泊车命令</td><td>从当前位置导航泊车到停车位上。</td><td>external_command::ValetParkingCommand</td><td>/apollo/external_command/valet_parking</td></tr><tr><td>流程操作命令</td><td>HMI发送的流程操作命令，包括紧急靠边停车（PULL_OVER），紧急停车（STOP），继续行驶（CRUISE）等命令，目前只对PULL_OVER和STOP命令响应。</td><td>planning::ActionCommand</td><td>/apollo/external_command/action</td></tr></tbody></table>
 
+**重要说明**：上述外部命令会被 external_command 模块的 process_component 接收并处理，转换为 `planning::PlanningCommand` 格式后发送到 `/apollo/planning/command` topic。planning 模块的 planning_command_reader_ 订阅的是这个经过 external_command 处理后的 PlanningCommand，而非 routing 模块直接发出的命令或用户手动规定的原始命令。详细的命令流转过程请参考 `modules/external_command/process_component/README_cn.md`。
+
 ### 输出
 
 <table><thead><tr><th>信息</th><th>说明</th><th>数据类型</th><th>topic name</th></tr></thead><tbody><tr><td>规划轨迹</td><td>输出规划轨迹，包含轨迹点，速度和时间等信息。</td><td>planning::ADCTrajectory</td><td>/apollo/planning</td></tr><tr><td>导航状态</td><td>导航命令的执行状态。</td><td>external_command::CommandStatus</td><td>/apollo/planning/command_status</td></tr><tr><td>重新路由的请求</td><td>在道路被阻塞，换道失败超时时，发送重新路由的申请。</td><td>external_command::LaneFollowCommand</td><td>/apollo/external_command/lane_follow</td></tr></tbody></table>
@@ -94,6 +96,10 @@ modules/planning/planning_base/planning_component.cc：
 
 ```bash
 // 订阅planning输入导航命令的消息
+// 注意：这些命令来自external_command模块处理后的PlanningCommand，
+// 而非routing模块或用户直接发送的命令。external_command模块负责将
+// 外部命令（如LaneFollowCommand、ValetParkingCommand等）转换为
+// PlanningCommand格式后发送给planning模块。
 planning_command_reader_ = node_->CreateReader<PlanningCommand>(
       config_.topic_config().planning_command_topic(),
       [this](const std::shared_ptr<PlanningCommand>& planning_command) {

@@ -123,7 +123,7 @@ planning初始化在PlanningComponent::Init函数中进行，在这里创建Plan
 
 | 成员对象                      | 类型                                                                                                                                | 描述                                     |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| **planning_command_reader\_** | `std::shared_ptr< apollo::cyber::Reader < apollo::planning::PlanningCommand >>`                                                     | 输入导航命令订阅                         |
+| **planning_command_reader\_** | `std::shared_ptr< apollo::cyber::Reader < apollo::planning::PlanningCommand >>`                                                     | 输入导航命令订阅（来自external_command模块处理后的命令，而非routing或用户直接发送）                         |
 | **traffic_light_reader\_**    | `std::shared_ptr< apollo::cyber::Reader < apollo::perception::TrafficLightDetection >>`                                             | 交通灯消息订阅                           |
 | **pad_msg_reader\_**          | `std::shared_ptr< apollo::cyber::Reader < apollo::planning::PadMessage >>`                                                          | planning操作命令（start，stop）消息订阅  |
 | **story_telling_reader\_**    | `std::shared_ptr< apollo::cyber::Reader < apollo::storytelling::Stories >>`                                                         | storytelling消息订阅                     |
@@ -319,6 +319,8 @@ Planning模块需要获取外部环境信息，车辆自身信息进行轨迹规
 | `/apollo/external_command/lane_follow`   | `apollo::external_command::LaneFollowCommand`   | 基于高精地图导航的命令，给定终点的位置或朝向，从当前车辆位置导航到目标终点位置 |
 | `/apollo/external_command/valet_parking` | `apollo::external_command::ValetParkingCommand` | 从当前位置导航泊车到停车位上                                                   |
 | `/apollo/external_command/action`        | `apollo::external_command::ActionCommand`       | HMI发送的流程操作命令                                                          |
+
+**命令流转说明**：用户发送的外部命令（如上述LaneFollowCommand、ValetParkingCommand等）会被external_command模块的process_component接收和处理，然后转换为`PlanningCommand`格式发送到`/apollo/planning/command` topic。planning_command_reader_订阅的正是这个经过external_command模块处理后的PlanningCommand，而非routing模块直接发出的命令或用户手动规定的原始命令。关于external_command模块的详细信息，请参考`modules/external_command/process_component/README_cn.md`。
 
 #### 输出
 
